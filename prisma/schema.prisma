@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model teachers {
+  id         Int      @id @default(autoincrement())
+  first_name String   @db.VarChar(63)
+  last_name  String   @db.VarChar(63)
+  email      String   @db.VarChar(127)
+  password   String   @db.VarChar(127)
+  createdat  DateTime @default(now()) @db.Timestamp(6)
+  updatedat  DateTime @default(now()) @db.Timestamp(6)
+}
+
+model parents {
+  id         Int      @id @default(autoincrement())
+  first_name String   @db.VarChar(63)
+  last_name  String   @db.VarChar(63)
+  email      String   @db.VarChar(127)
+  password   String   @db.VarChar(127)
+  createdat  DateTime @default(now()) @db.Timestamp(6)
+  updatedat  DateTime @default(now()) @db.Timestamp(6)
+}
