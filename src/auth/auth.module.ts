@@ -1,21 +1,22 @@
 /* eslint-disable prettier/prettier */
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
-import { TeacherModule } from 'src/teacher/teacher.module';
+import { UserModule } from 'src/user/user.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { AuthService } from './auth.service';
-import { ParentsModule } from 'src/parents/parents.module';
+import { FileModule } from 'src/files/file.module';
 
 @Module({
   imports: [JwtModule.register({
-    secret: "a^W-l5Z2Ozi7hy2]/GQ87B!NRBLykQLC"
+    secret: "a^W-l5Z2Ozi7hy2]/GQ87B!NRBLykQLC",
   }),
-  TeacherModule,
-  ParentsModule,
-  PrismaModule
+  forwardRef(() => UserModule),
+  PrismaModule,
+  FileModule
   ],
   controllers: [AuthController],
-  providers: [AuthService]
+  providers: [AuthService],
+  exports: [AuthService]
 })
 export class AuthModule {}

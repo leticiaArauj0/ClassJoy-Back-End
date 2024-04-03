@@ -1,10 +1,7 @@
 /* eslint-disable prettier/prettier */
-import { IsEmail, IsStrongPassword } from 'class-validator';
+import { IsStrongPassword } from 'class-validator';
 
-export class AuthLoginDTO {
-    @IsEmail()
-    email: string;
-
+export class DeleteUsernDTO {
     @IsStrongPassword({
         minLength: 8,
         minUppercase: 0,

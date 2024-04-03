@@ -3,16 +3,15 @@ import { ExecutionContext, NotFoundException, createParamDecorator } from "@nest
 
 export const User = createParamDecorator((filter: string, context: ExecutionContext) => {
     const request = context.switchToHttp().getRequest()
-
     if(request.user) {
-        
-        if(filter) {
+
+        if(filter){
             return request.user[filter]
         } else {
-            return request.User
+            return request.user
         }
-
+        
     } else {
-        throw new NotFoundException("Usuário não encontrado no Request")
+        throw new NotFoundException("Usuário não encontrado. Use o AuthGuard para obter o usuário.")
     }
 })

@@ -1,5 +1,6 @@
 /* eslint-disable prettier/prettier */
-import { IsEmail, IsString, IsStrongPassword } from 'class-validator';
+import { IsEmail, IsEnum, IsString, IsStrongPassword } from 'class-validator';
+import { Role } from 'src/enums/role.enum';
 
 export class CreateUserDTO {
   @IsString()
@@ -13,10 +14,13 @@ export class CreateUserDTO {
 
   @IsStrongPassword({
     minLength: 8,
-    minUppercase: 1,
+    minUppercase: 0,
     minLowercase: 1,
     minSymbols: 0,
     minNumbers: 1,
   })
   password: string;
+
+  @IsEnum(Role)
+  role: string;
 }

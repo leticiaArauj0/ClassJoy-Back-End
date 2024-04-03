@@ -1,41 +1,51 @@
 /* eslint-disable prettier/prettier */
+import { PrismaService } from 'src/prisma/prisma.service';
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { parents, teachers } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { User } from '@prisma/client';
 import { AuthRegisterDTO } from './dto/auth-register';
-import { TeacherService } from 'src/teacher/teacher.service';
-import { ParentsService } from 'src/parents/parents.service';
+import { UserService } from 'src/user/user.service';
+import * as bcrypt from 'bcrypt'
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class AuthService {
-
   private issuer = 'login'
-  private audience = 'teachers'
 
-  constructor(private readonly jwtService: JwtService, private readonly prisma: PrismaService, private readonly teacherService: TeacherService, private readonly parentsService: ParentsService) {}
+  constructor(
+    private readonly jwtService: JwtService, 
+    private readonly prisma: PrismaService, 
+    private readonly userService: UserService,
+    private readonly mailer: MailerService
+    ) {}
 
-  createToken(teacher: teachers) {
-    return {
-      accessToken: this.jwtService.sign({
-        id: teacher.id,
-        first_name: teacher.first_name,
-        email: teacher.email
+  createToken(user: User) {
+    return this.jwtService.sign({
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        role: user.role
       }, {
-        subject: String(teacher.id),
+        subject: String(user.id),
         issuer: this.issuer,
-        audience: this.audience
+        expiresIn: '7 days'
       })
-    }
   }
 
-  checkToken(token: string) {
+  async checkToken(token: string) {
     try {
-      const data = this.jwtService.verify(token, {
+      const data = await this.jwtService.verify(token, {
         issuer: this.issuer,
-        audience: this.audience
       });
-      return data;
+
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id: data.id,
+        }
+      })
+
+      return {user: user};
     } catch (e) {
       throw new BadRequestException(e);
     }
@@ -51,32 +61,45 @@ export class AuthService {
   }
 
   async login(email: string, password:string) {
-    const teacher = await this.prisma.teachers.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         email,
-        password
       }
     })
 
-    if(!teacher) {
+    if(!user) {
       throw new UnauthorizedException('Email e/ou senha incorretos.');
     }
 
-    return this.createToken(teacher);
+    if(!await bcrypt.compare(password, user.password)) {
+      throw new UnauthorizedException('Email e/ou senha incorretos.');
+    }
+
+    const jwt = this.createToken(user)
+
+    return {token: jwt, user: user};
   }
 
   async forget(email: string) {
-    const teacher = await this.prisma.teachers.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         email
       }
     })
 
-    if(!teacher) {
-      throw new UnauthorizedException('Email incorretos');
+    if(!user) {
+      throw new UnauthorizedException('Email incorreto');
     }
 
-    // Enviar Email
+    this.mailer.sendMail({
+      subject: "Recuperação de Senha",
+      to: email,
+      template: "forget",
+      context: {
+        name: "",
+        link: ""
+      }
+    })
 
     return true;
   }
@@ -86,7 +109,7 @@ export class AuthService {
 
     const id = 0;
 
-    const teacher = await this.prisma.teachers.update({
+    const user = await this.prisma.user.update({
       where: {
         id,
       },
@@ -95,70 +118,13 @@ export class AuthService {
       },
     });
 
-    return this.createToken(teacher);
+    return this.createToken(user);
   }
 
   async register(data: AuthRegisterDTO) {
-    const teacher = await this.teacherService.create(data);
+    const user = await this.userService.create(data);
+    const jwt = this.createToken(user)
 
-    return this.createToken(teacher);
-  }
-
-// Auth Parents
-
-  createTokenParents(parents: parents) {
-    return {
-      accessToken: this.jwtService.sign({
-        id: parents.id,
-        first_name: parents.first_name,
-        email: parents.email
-      }, {
-        subject: String(parents.id),
-        issuer: this.issuer,
-        audience: 'parents'
-      })
-    }
-  }
-
-  checkTokenParents(token: string) {
-    try {
-      const data = this.jwtService.verify(token, {
-        issuer: this.issuer,
-        audience: 'parents'
-      });
-      return data;
-    } catch (e) {
-      throw new BadRequestException(e);
-    }
-  }
-
-  isValidTokenParents(token: string) {
-    try {
-      this.checkTokenParents(token);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  async loginParents(email: string, password:string) {
-    const parents = await this.prisma.parents.findFirst({
-      where: {
-        email,
-        password
-      }
-    })
-
-    if(!parents) {
-      throw new UnauthorizedException('Email e/ou senha incorretos.');
-    }
-
-    return this.createToken(parents);
-  }
-
-  async registerParents(data: AuthRegisterDTO) {
-    const parents = await this.parentsService.create(data);
-
-    return this.createToken(parents);
+    return {token: jwt, user: user};
   }
 }
