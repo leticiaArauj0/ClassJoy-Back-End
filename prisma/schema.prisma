@@ -19,26 +19,87 @@ model User {
 
   role       String
   classroom  Classroom[]  @relation(name: "TeacherClassroom")
-  student    Student[]    @relation(name: "ParentsStudent")
+  child      Student[]    @relation(name: "ParentsStudent")
+  student    Student[]    @relation(name: "TeacherStudent")
+  plannings  Planning[]   @relation(name: "TeacherPlannings")
+  planningId Int?         @unique
 }
 
 model Classroom {
-  id         Int      @id @default(autoincrement())
-  createdat  DateTime @default(now()) @db.Timestamp(6)
-  updatedat  DateTime @default(now()) @db.Timestamp(6)
+  id         Int          @id @default(autoincrement())
+  createdat  DateTime     @default(now()) @db.Timestamp(6)
+  updatedat  DateTime     @default(now()) @db.Timestamp(6)
+
   name       String
-  teacher    User     @relation(name: "TeacherClassroom", fields: [teacherId], references: [id])
+
+  teacher    User         @relation(name: "TeacherClassroom", fields: [teacherId], references: [id])
+  student    Student[]    @relation(name: "ClassroomStudent")
   teacherId  Int
 }
 
 model Student {
-  id         Int     @id @default(autoincrement())
-  createdat  DateTime @default(now())  @db.Timestamp(6)
-  updatedat  DateTime @default(now())  @db.Timestamp(6)
+  id         Int        @id @default(autoincrement())
+  createdat  DateTime   @default(now())  @db.Timestamp(6)
+  updatedat  DateTime   @default(now())  @db.Timestamp(6)
 
   name       String 
   age        Int
   
-  parents    User    @relation(name: "ParentsStudent", fields: [parentsId], references: [id])
-  parentsId  Int
+  parents     User?       @relation(name: "ParentsStudent", fields: [parentsId], references: [id])
+  parentsId   Int?
+
+  classroom   Classroom   @relation(name: "ClassroomStudent", fields: [classroomId], references: [id], onDelete: Cascade)
+  classroomId Int
+
+  teacher     User        @relation(name: "TeacherStudent", fields: [teacherId], references: [id])
+  teacherId   Int
+
+  diaries     Diary[]     @relation(name: "StudentDiary")
+}
+
+model Diary {
+  id              Int          @id @default(autoincrement())
+  createdat       DateTime     @default(now()) @db.Timestamp(6)
+  updatedat       DateTime     @default(now()) @db.Timestamp(6)
+
+  entryTime       String       @db.VarChar(8)   // Formato "HH:mm:ss"
+  departureTime   String       @db.VarChar(8)   // Formato "HH:mm:ss"
+
+  date            DateTime     @default(now())
+  
+  feeding         String       @default("comeu")
+  ateAlone        String
+  obsFeeding      String?
+
+  sleep           String      
+  startSleep      String?      @db.VarChar(8)   // Formato "HH:mm:ss"
+  endSleep        String?      @db.VarChar(8)   // Formato "HH:mm:ss"
+  obsSleep        String?
+
+  bathroom        String
+  bathroomAmount   Int          @default(0)
+  obsBathroom     String?
+
+  reminder        String?     
+  notice          String?
+
+  studentId       Int? 
+  student         Student?     @relation(name: "StudentDiary", fields: [studentId], references: [id])
+}
+
+model Planning {
+  id                Int        @id @default(autoincrement())
+  createdAt         DateTime   @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime   @default(now()) @db.Timestamp(6)
+
+  teacherName       String?
+  ageGroup          String?
+  bnccCod           Int
+  fieldExperience   String
+  objectives        String
+  method            String
+  teachingResources String
+
+  teacher           User    @relation(name: "TeacherPlannings", fields: [teacherId], references: [id])
+  teacherId         Int
 }
